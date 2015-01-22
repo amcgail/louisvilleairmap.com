@@ -1,6 +1,19 @@
 var map, in_bounds, drawn, filter_selections = {}, loaded_at = new Date(), breakpoints = [], legend_html = '';
 var geoJsonLayers = {}, layersData = {}
 
+var added = [];
+
+var mypatterns = [
+	"NE_purple",
+	"W_yellow",
+	"NW_red",
+	"N_blue",
+	"space",
+	"dot_blue"
+];
+
+var all_labels = [];
+
 var AQE = (function ( $ ) {
   "use strict";
 
@@ -165,18 +178,28 @@ var AQE = (function ( $ ) {
         })
 
         // outside-Leaflet layers with legends
-        $.each($(".leaflet-layer-with-legend").find("input:checked"), function(n,item){
-          var this_item = $(item)
-          var dataset_name = $.trim(this_item.parent().text())
-          var variable_name = this_item.parent().parent().find("select").val()
-          var dataset_variable = dataset_name+"-"+variable_name
-          div_html += "<img src='/assets/img/map_legends/"+dataset_variable+".png' alt='legend for "+dataset_variable+"'/>"
-        })
+	$.each($(".leaflet-layer-with-legend").find("input:checked:not(.doesntcount)"), function(n,item){
+		var this_item = $(item)
+		var dataset_name = $.trim(this_item.parent().text())
+		var variable_name = this_item.parent().parent().find("select").val()
+		var dataset_variable = dataset_name+"-"+variable_name
+
+		if( dataset_variable.indexOf( 'Neighborhood Health Equity 2014' ) == 0 ) {
+			div_html += "<table>";
+			for( var izz in added ) {
+				var color = "url(#" + mypatterns[ parseInt(izz) ] + ")";
+				div_html += "<tr><td><svg width=15 height=15><rect width='15' height='15' style='fill:" + color + ";stroke-width:1;stroke:black' /></svg></td>";
+				div_html += "<td>" + added[ izz ][0] + "</td></tr>";
+			}
+			div_html += "</table>";
+		} else {
+			div_html += "<img src='/assets/img/map_legends/"+dataset_variable+".png' alt='legend for "+dataset_variable+"'/>"
+		}
+	})
 
         // add legend_html and then clear it
         div_html += legend_html
         legend_html = ''
-
 
         div_html += "</div></div></div>"
         div.innerHTML = div_html
@@ -255,6 +278,10 @@ var AQE = (function ( $ ) {
       var from_now = moment(original).fromNow()
       $(item).html("<abbr title='"+original+"'>"+from_now+"</abbr>")
     })
+
+    $(".filter-he2014neighborhoodgeojson").change( function() {
+	$("#filter-he2014neighborhoodgeojson-fine").toggle( this.checked );
+    } );
 
     $(".submit-map-filters").on('click',function( event ) {
       event.preventDefault();
@@ -460,23 +487,40 @@ var AQE = (function ( $ ) {
       layer.bindPopup(html)
     }
     else if(item.type == "he2014neighborhoodgeojson"){
+	var itemarr = {
+		"LifeExpect":"<tr><td>Life Expectancy</td><td>"+item.LifeExpect+" </td></tr>",
+		"AlcoholDru":"<tr><td>Alcohol or other drugs*</td><td>"+item.AlcoholDru+" </td></tr>",
+		"HeartDisea":"<tr><td>Heart Disease*</td><td>"+item.HeartDisea+" </td></tr>",
+		"Homicide":"<tr><td>Homicide*</td><td>"+item.Homicide+" </td></tr>",
+		"Suicide":"<tr><td>Suicide*</td><td>"+item.Suicide+" </td></tr>",
+		"HIV":"<tr><td>HIV*</td><td>"+item.HIV+" </td></tr>",
+		"Diabetes":"<tr><td>Diabetes*</td><td>"+item.Diabetes+" </td></tr>",
+		"Unintended":"<tr><td>Unintentional Injury*</td><td>"+item.Unintended+" </td></tr>",
+		"Cancer":"<tr><td>Cancer*</td><td>"+item.Cancer+" </td></tr>",
+		"Stroke":"<tr><td>Stroke*</td><td>"+item.Stroke+" </td></tr>"
+	};
       var html = "<div><h4>"+item.Neighbor+" Neighborhood</h4>"
       html += "<table class='table table-striped' data-he2014neighborhoodgeojson_id='"+item.OBJECTID+"'>"
-      html += "<tr><td>Life Expectancy</td><td>"+item.LifeExpect+" </td></tr>"
-      html += "<tr><td>Heart Disease*</td><td>"+item.HeartDisea+" </td></tr>"
-      html += "<tr><td>Homicide*</td><td>"+item.Homicide+" </td></tr>"
-      html += "<tr><td>Suicide*</td><td>"+item.Suicide+" </td></tr>"
-      html += "<tr><td>HIV*</td><td>"+item.HIV+" </td></tr>"
-      html += "<tr><td>Diabetes*</td><td>"+item.Diabetes+" </td></tr>"
-      html += "<tr><td>Unintentional Injury*</td><td>"+item.Unintended+" </td></tr>"
-      html += "<tr><td>Alcohol or other drugs*</td><td>"+item.AlcoholDru+" </td></tr>"
-      html += "<tr><td>Stroke*</td><td>"+item.Stroke+" </td></tr>"
-      html += "<tr><td>Cancer*</td><td>"+item.Cancer+" </td></tr>"
+	for( var index in added ) {
+		html += itemarr[ added[index][0] ];
+	}
       html += "</table>" 
       html += "<p>* Age Adjusted death rate per 100,000 population</p>"
       html += "<p style='font-size:80%'>From <a href='http://www.louisvilleky.gov/health/equity/' target='blank'>Louisville, KY Health Equity Report 2014 edition (updated July 2014)</a>."
       html += "</div>"
-      layer.bindPopup(html)
+	console.log( layer );
+
+	if( added.length == 1 ) {
+
+		var label = new L.Label();
+		label.setContent( ( Math.floor( layer.feature.properties[ added[ 0 ][0] ] * 100 ) / 100 ).toString() );
+		label.setLatLng( L.polygon( layer._latlngs ).getBounds().getCenter() );
+		map.showLabel(label);
+		all_labels.push( label );
+
+	} else {
+	      layer.bindPopup(html)
+	}
     }
     else if(item.type == "trafficcountsgeojson"){
       var html = "<div><h4>Traffic Flow Information for Route #"+item.RT_NE_UNIQ+"</h4>"
@@ -586,7 +630,7 @@ var AQE = (function ( $ ) {
       else{ show = false }
     }
     else if(item.type == "he2014neighborhoodgeojson"){
-      if(filter_selections["he2014neighborhoodgeojson"] == "true"){ show = true}
+      if(filter_selections["he2014neighborhoodgeojson"] == true){ show = true}
       else { show = false }
     }
     else if(item.type == "trafficcountsgeojson"){
@@ -631,9 +675,27 @@ var AQE = (function ( $ ) {
       filter_selections["bike"] = false
     }
     // health equity report 2014
-    filter_selections["he2014neighborhoodgeojson"] = $('input.filter-he2014neighborhoodgeojson:checked').val()
-    filter_selections["he2014neighborhoodgeojson_colorBy"] = $('select.filter-he2014neighborhoodgeojson-colorBy').val()
-    filter_selections["he2014neighborhoodgeojson_higherBetter"] = $('select.filter-he2014neighborhoodgeojson-colorBy option:selected').data("higherbetter")
+    filter_selections["he2014neighborhoodgeojson"] = false;
+    if( $('input.filter-he2014neighborhoodgeojson').is( ":checked" ) ) {
+	filter_selections["he2014neighborhoodgeojson"] = true;
+	filter_selections["he2014neighborhoodgeojson_colorBy"] = [];
+	var inparr = [
+               [ "LifeExpect", true ],
+               ["AlcoholDru", false],
+               ["HeartDisea", false],
+               ["Homicide", false],
+               ["Suicide", false],
+               ["HIV", false],
+               ["Diabetes", false],
+               ["Unintended", false],
+               ["Cancer", false],
+               ["Stroke", false]
+	];
+	for( var i in inparr ) {
+		if( $("input.filter-he2014neighborhoodgeojson-" + inparr[i][0]).is(":checked") )
+			filter_selections["he2014neighborhoodgeojson_colorBy"].push( inparr[i] );
+	}
+    }
     // traffic counts
     filter_selections["trafficcountsgeojson"] = $('input.filter-trafficcountsgeojson:checked').val()
     filter_selections["trafficcountsgeojson_colorBy"] = $('select.filter-trafficcountsgeojson-colorBy').val()
@@ -641,20 +703,33 @@ var AQE = (function ( $ ) {
   }
 
   function update_map(key){
+      if(key == "he2014neighborhoodgeojson"){ 
+	for( i in added ) {
+		map.removeLayer( geoJsonLayers[ key + "." + added[i][0] ] )
+	}
+	for( i in all_labels ) {
+		all_labels[i].close();
+		console.log( all_labels[i] );
+	}
+	try { map.removeControl(legend) } catch(e) { } //remove legend
+      }
+
     if(typeof(geoJsonLayers[key]) != "undefined"){
       map.removeLayer(geoJsonLayers[key])    // remove layer's markers
-      if(key == "he2014neighborhoodgeojson"){ try { map.removeControl(legend) } catch(e) { } } // remove legend
     }
     update_filters()
 
     // special for geojson polygon and line layers -- TODO refactor!
-    if(key == "he2014neighborhoodgeojson" && filter_selections["he2014neighborhoodgeojson"] == "true" && filter_selections["he2014neighborhoodgeojson_colorBy"] != undefined){
+    if(
+	key == "he2014neighborhoodgeojson" && 
+	filter_selections["he2014neighborhoodgeojson"] == "true" && 
+	filter_selections["he2014neighborhoodgeojson_colorBy"] != undefined
+		){
       var array_of_values = layersData[key].features.map(function(i){
         return i.properties[filter_selections["he2014neighborhoodgeojson_colorBy"]]
       })
       var s1 = new Stats().push(array_of_values);
       breakpoints = [s1.percentile(80), s1.percentile(60), s1.percentile(40), s1.percentile(20), s1.percentile(0)]
-      legend.addTo(map)
     } 
     else if(key == "trafficcountsgeojson" && filter_selections["trafficcountsgeojson"] == "true" && filter_selections["trafficcountsgeojson_colorBy"] != undefined){
       var array_of_values = layersData[key].features.map(function(i){
@@ -671,13 +746,105 @@ var AQE = (function ( $ ) {
       legend.addTo(map)
     } 
 
-    geoJsonLayers[key] = L.geoJson(layersData[key], {
-      onEachFeature: onEachFeature,
-      filter: filterFeatures,
-      style: geoJsonStyle
-    }).addTo(map);
+    if( key == "he2014neighborhoodgeojson" ) {
+
+	added = filter_selections["he2014neighborhoodgeojson_colorBy"];
+
+	legend.addTo(map)
+
+	var step = 1 / added.length;
+	for( var istr in added ) {
+
+		var a = layersData[key].features.map(function(i){
+			return i.properties[ added[istr][0] ]
+		});
+		var arr_max = a[0];
+		var arr_min = a[0];
+		for( i in a ) {
+			if( arr_min > a[i] )
+				arr_min = a[i];
+			if( arr_max < a[i] )
+				arr_max = a[i];
+		}
+
+		var i = parseInt( istr );
+		var tsc = $.extend( true, {}, layersData[key] );
+
+		/*
+		if( i < added.length - 1 )
+			for( var j in tsc['features'] ) {
+				var original_shape = tsc['features'][j]['geometry']['coordinates'][0];
+				tsc['features'][j]['geometry']['coordinates'] = [
+					shrinkshape( original_shape, 1 - step * i ),
+					shrinkshape( original_shape, 1 - step * (i+1) )
+				];
+			}
+		else
+			for( var j in tsc['features'] ) {
+				var original_shape = tsc['features'][j]['geometry']['coordinates'][0];
+				tsc['features'][j]['geometry']['coordinates'] = [
+					shrinkshape( original_shape, 1 - step * i )
+				];
+			}
+		*/
+
+		geoJsonLayers[key + "." + added[ istr ][0]] = L.geoJson(tsc, {
+			onEachFeature: onEachFeature,
+			filter: filterFeatures,
+			style: ( function( colorBy ) {
+				return function( feature ) {
+					var style = {};
+					style.fillColor = "url(#" + mypatterns[ parseInt(istr) ] + ")";
+					style.weight = 4
+					console.log
+					style.fillOpacity = ( feature.properties[colorBy[0]] - arr_min ) / (arr_max - arr_min)
+
+					if(colorBy[1] == true)
+						style.fillOpacity = 1 - style.fillOpacity;
+
+					console.log( style.fillOpacity );
+					style.fillOpacity = 2 * Math.floor( 10 * style.fillOpacity / 2 ) / 10;
+					console.log( style.fillOpacity );
+					style.color = 'white'
+					style.dashArray = '3'
+					return style;
+				};
+			} )( added[ istr ] )
+		}).addTo(map);
+	}
+    }
 
     breakpoints = [] // reset breakpoints to null
+  }
+
+  function shrinkshape( arr, byhowmuch ) {
+	var newarr = [];
+	      var totx = 0;
+	      var cntx = 0;
+	      var toty = 0;
+	      var cnty = 0;
+
+	      for( var k in arr ) {
+		  totx += arr[k][0];
+		  cntx += 1;
+		  toty += arr[k][1];
+		  cnty += 1;
+	      }
+
+	      var avgx = totx / cntx;
+	      var avgy = toty / cnty;
+
+		for( var k in arr ) {
+		  var ox = arr[k][0];
+		  var oy = arr[k][1];
+
+		  newarr.push( [
+			avgx + (ox - avgx)*byhowmuch,
+		  	avgy + (oy - avgy)*byhowmuch
+		  ] );
+		}
+
+	return newarr;
   }
 
   function getDisplayValueByBreakpoint(value, displayValues) {
@@ -687,6 +854,8 @@ var AQE = (function ( $ ) {
              value >= breakpoints[3] ? displayValues[3]: 
                                        displayValues[4]; 
   }
+
+  var counter = 1;
 
   function geoJsonStyle(feature) {
     var style = {}
@@ -713,7 +882,19 @@ var AQE = (function ( $ ) {
       
     }
     return style;
+
+    var style = {}
+    counter += 1;
+    if( counter == 4 ) counter = 1;
+    var mynewarray = ['0', '1', '2', '3', '4'];
+    mynewarray = mynewarray.map( function( a ) { return 'url(#img' + a + ')'; } );
+    style.fillColor = getDisplayValueByBreakpoint( feature.properties[filter_selections["he2014neighborhoodgeojson_colorBy"]], mynewarray );
+    style.fillOpacity = 1;
+    style.color = 'white';
+    return style;
   }
+
+
 
 
   function onAQSSiteMapMarkerClick(e){

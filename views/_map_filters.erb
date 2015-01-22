@@ -93,21 +93,34 @@
                 <img style='width:19px; height:20px; margin-top: -4px;' src='/assets/img/louisvillekygov.png' alt='louisville ky'/> 
                 Neighborhood Health Equity 2014
              </label>
-             <div style="margin-left:35px;">
-              <label style="font-weight:normal;"><em>Color neighborhoods by:</em>
-              <select class='form-control filter-he2014neighborhoodgeojson-colorBy'>
-                <option data-higherbetter="true" value="LifeExpect">Life Expectancy</option>
-                <option data-higherbetter="false" value="AlcoholDru">Alcohol or other drugs*</option>
-                <option data-higherbetter="false" value="HeartDisea">Heart disease*</option>
-                <option data-higherbetter="false" value="Homicide">Homicide*</option>
-                <option data-higherbetter="false" value="Suicide">Suicide*</option>
-                <option data-higherbetter="false" value="HIV">HIV*</option>
-                <option data-higherbetter="false" value="Diabetes">Diabetes*</option>
-                <option data-higherbetter="false" value="Unintended">Unintentional injury*</option>
-                <option data-higherbetter="false" value="Cancer">Cancer*</option>
-                <option data-higherbetter="false" value="Stroke">Stroke*</option>
-              </select>
+             <div style="display:none; margin-left:35px;" id='filter-he2014neighborhoodgeojson-fine'>
+		<em>Color neighborhoods by:</em><br>
+               <label> <input class='doesntcount filter-he2014neighborhoodgeojson-LifeExpect' type="checkbox" value="false"> Life Expectancy  </label><br>
+               <label> <input class='doesntcount filter-he2014neighborhoodgeojson-AlcoholDru' type="checkbox" value="false"> Alcohol or other drugs* </label><br>
+               <label> <input class='doesntcount filter-he2014neighborhoodgeojson-HeartDisea' type="checkbox" value="false"> Heart disease* </label><br>
+               <label> <input class='doesntcount filter-he2014neighborhoodgeojson-Homicide' type="checkbox" value="false"> Homicide* </label><br>
+               <label> <input class='doesntcount filter-he2014neighborhoodgeojson-Suicide' type="checkbox" value="false"> Suicide* </label><br>
+               <label> <input class='doesntcount filter-he2014neighborhoodgeojson-HIV' type="checkbox" value="false"> HIV* </label><br>
+               <label> <input class='doesntcount filter-he2014neighborhoodgeojson-Diabetes' type="checkbox" value="false"> Diabetes* </label><br>
+               <label> <input class='doesntcount filter-he2014neighborhoodgeojson-Unintended' type="checkbox" value="false"> Unintentional injury* </label><br>
+               <label> <input class='doesntcount filter-he2014neighborhoodgeojson-Cancer' type="checkbox" value="false"> Cancer* </label><br>
+               <label> <input class='doesntcount filter-he2014neighborhoodgeojson-Stroke' type="checkbox" value="false"> Stroke* </label><br>
+<!--
+              <label style="font-weight:normal;">
+               <select class='form-control filter-he2014neighborhoodgeojson-colorBy'>
+                 <option data-higherbetter="true" value="LifeExpect">Life Expectancy</option>
+                 <option data-higherbetter="false" value="AlcoholDru">Alcohol or other drugs*</option>
+                 <option data-higherbetter="false" value="HeartDisea">Heart disease*</option>
+                 <option data-higherbetter="false" value="Homicide">Homicide*</option>
+                 <option data-higherbetter="false" value="Suicide">Suicide*</option>
+                 <option data-higherbetter="false" value="HIV">HIV*</option>
+                 <option data-higherbetter="false" value="Diabetes">Diabetes*</option>
+                 <option data-higherbetter="false" value="Unintended">Unintentional injury*</option>
+                 <option data-higherbetter="false" value="Cancer">Cancer*</option>
+                 <option data-higherbetter="false" value="Stroke">Stroke*</option>
+               </select>
               </label>
+-->
               <p style="font-size:80%;">* Age Adjusted death rate per 100,000 population</p>
             </div>
           </div>
