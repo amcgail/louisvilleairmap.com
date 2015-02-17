@@ -12,6 +12,8 @@ require 'rest-client'
 require 'json'
 require 'net/ftp'
 require 'time'
+require 'net/http'
+require 'open-uri'
 
 require './lib/helpers'
 include AppHelpers
@@ -37,13 +39,13 @@ class AirQualityEgg < Sinatra::Base
 
     set :protection, :except => :frame_options
     set :session_secret, ENV['SESSION_SECRET'] || 'louisville_session_secret'
-    if ENV["MEMCACHEDCLOUD_SERVERS"]
-      set :cache, Dalli::Client.new(ENV["MEMCACHEDCLOUD_SERVERS"].split(','), {:username => ENV["MEMCACHEDCLOUD_USERNAME"], :password => ENV["MEMCACHEDCLOUD_PASSWORD"], :compress => true})
-    else
-      set :cache, Dalli::Client.new
-    end
+    #if ENV["MEMCACHEDCLOUD_SERVERS"]
+      #set :cache, Dalli::Client.new(ENV["MEMCACHEDCLOUD_SERVERS"].split(','), {:username => ENV["MEMCACHEDCLOUD_USERNAME"], :password => ENV["MEMCACHEDCLOUD_PASSWORD"], :compress => true})
+    #else
+      #set :cache, Dalli::Client.new
+    #end
     set :time_zone, ActiveSupport::TimeZone.new("Eastern Time (US & Canada)")
-    settings.cache.flush
+    #settings.cache.flush
   end
 
   configure :production do
@@ -189,10 +191,28 @@ WHERE
 
   # Home page
   get '/' do
+
     @local_feed_path = '/all_eggs.geojson'
     @error = session.delete(:error)
 
-    @custom_js = [ "/assets/js/embed.js", "/assets/js/main.js","/vendor/node-faststats/faststats.js" ]
+     @custom_js = []
+
+    if request.env['HTTP_HOST'].include? "soil"
+      @site = "S"
+	@custom_js << "/assets/js/main_soil.js"
+    end
+    if request.env['HTTP_HOST'].include? "air"
+      @site = "A"
+	@custom_js << "/assets/js/main.js"
+    end
+    if request.env['HTTP_HOST'].include? "water"
+      @site = "W"
+	@custom_js << "/assets/js/main_water.js"
+    end
+
+	@custom_js << "/assets/js/embed.js"
+	@custom_js << "/vendor/node-faststats/faststats.js"
+
     @embeddable = true
 
     if params[:embed] == "true"
@@ -200,6 +220,9 @@ WHERE
     else
       erb :home
     end
+  end
+
+  get '/test' do
   end
 
   post '/asthmaheat' do
@@ -218,11 +241,7 @@ WHERE
   route :get, :post, '/ckan_proxy/:key.geojson' do
     content_type :json
     key = params[:key]
-    puts params
     if key == "bike"
-      # BEGIN BIKE HACK
-      cache_key = "ckan_proxy/#{key}-#{params[:bike_id]}-#{params[:parameter]}.geojson"
-      cached_data = settings.cache.fetch(cache_key) do
         datas = sql_search_ckan(sql_for_all_sites_by_key(key)+" WHERE bike_id = '#{params[:bike_id]}' and parameter = '#{params[:parameter]}'")
         geojson = []
         datas.each do |feature|
@@ -236,15 +255,21 @@ WHERE
           }
         end
         geojson = geojson.to_json
-        # store in cache and return
-        settings.cache.set(cache_key, geojson, settings.cache_time)
-        geojson
-      end
+	geojson
+
+      # BEGIN BIKE HACK
+      #cache_key = "ckan_proxy/#{key}-#{params[:bike_id]}-#{params[:parameter]}.geojson"
+      #cached_data = settings.cache.fetch(cache_key) do
+      #  # store in cache and return
+      #  settings.cache.set(cache_key, geojson, settings.cache_time)
+      #  geojson
+      #end
       # END BIKE HACK
     else
-      cache_key = "ckan_proxy/#{key}.geojson"
-      cached_data = settings.cache.fetch(cache_key) do
+      #cache_key = "ckan_proxy/#{key}.geojson"
+      #cached_data = settings.cache.fetch(cache_key) do
         if key.match("geojson")
+		puts META[key]
           geojson = JSON.parse(raw_resource_from_ckan(META[key]["site_resource"]["url"]))
           # add important type property to each feature
           geojson['features'].each do |feature| 
@@ -267,9 +292,8 @@ WHERE
         end
         geojson = geojson.to_json
         # store in cache and return
-        settings.cache.set(cache_key, geojson, settings.cache_time)
-        geojson
-      end
+        #settings.cache.set(cache_key, geojson, settings.cache_time)
+        return geojson
     end
     return cached_data
   end
@@ -279,6 +303,7 @@ WHERE
     params[:date] = Date.today.to_s if params[:date].to_s == ""
     params[:distance] = 50 if params[:distance].to_s == ""
     url = "http://www.airnowapi.org/aq/forecast/latLong/?format=application/json&latitude=#{params[:lat]}&longitude=#{params[:lon]}&date=&distance=#{params[:distance]}&API_KEY=#{ENV["AIRNOW_API_KEY"]}"
+	puts url
     data = JSON.parse(RestClient.get(url))
     results = data.map do |result|
       result[:aqi_cat] = category_number_to_category(result["Category"]["Number"])

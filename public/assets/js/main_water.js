@@ -247,7 +247,6 @@ var AQE = (function ( $ ) {
       L.control.locate({locateOptions: {maxZoom: 9}}).addTo(map);
       L.control.fullscreen().addTo(map);
 
-
       legend.onAdd = function (map) {
         // console.log(map)
         var div = L.DomUtil.create('div', 'info legend')
@@ -310,12 +309,6 @@ var AQE = (function ( $ ) {
       map.on('overlayremove', function (eventLayer) {
         handleMapLegend()
       });
-
-      map.on('moveend', function (eventLayer) {
-        var map_center = map.getCenter()
-        $("#home-map-aqis-container").html("")
-        $.getJSON("/aqs/forecast.json?lat="+map_center.lat+"&lon="+map_center.lng, formatForecastDetails)
-      })
       map.fireEvent('moveend')
 
       map.on('draw:created', compareFeatures)

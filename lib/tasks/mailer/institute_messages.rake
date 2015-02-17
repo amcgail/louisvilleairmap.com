@@ -60,6 +60,8 @@ EOS
 
       exit if observations.empty?
 
+	puts "OBSERVATION EXISTS"
+
       observations = observations.sort_by{|x| -x["AQI"]}
 
       # See if the highest observation is more severe than moderate (category number 2)
@@ -70,6 +72,8 @@ EOS
         last_email_sent_result = sql_search_ckan(last_email_sent_sql)
         if last_email_sent_result.first["hours_since_last_email"] > 6
           # if the last email communication was more than four hours ago, send an alert about the latest observation
+          
+	puts "SENT ONE"
 
           message_introduction = "This is an air quality notification for #{ENV['FOCUS_CITY_NAME']} from the Institute for Healthy Air, Water, and Soil."
           message_html = <<-EOS
@@ -131,8 +135,8 @@ EOS
 
       EOS
 
-          # puts message_text
-          # puts message_html
+          puts message_text
+          puts message_html
 
           # Now that we've got the HTML and text versions of the email crafted, it's time to make API calls to Constant Contact
           time_sent = Time.now.utc.iso8601
@@ -191,7 +195,7 @@ EOS
               }
 
               upload_data_to_ckan_resource(CKAN_INSTITUTE_MESSAGES_RESOURCE_ID, [data_to_record], 'upsert')
-              # puts "Campaign scheduled and logged! It will go out in about 5 minutes"
+              puts "Campaign scheduled and logged! It will go out in about 5 minutes"
             else
               raise StandardError, "Campaign ##{campaign_id} could not be scheduled"
             end
@@ -210,7 +214,14 @@ EOS
 
     task :daily do
       # First, let's get the forecast from AirNow APIs
-      forecasts_url = "http://www.airnowapi.org/aq/forecast/latLong/?format=application/json&latitude=#{ENV['FOCUS_CITY_LAT']}&longitude=#{ENV['FOCUS_CITY_LON']}&distance=25&API_KEY=#{ENV["AIRNOW_API_KEY"]}"
+
+	t = Time.now
+	ts = t.strftime("%Y-%m-%d")
+
+      forecasts_url = "http://www.airnowapi.org/aq/forecast/latLong/?format=application/json&latitude=#{ENV['FOCUS_CITY_LAT']}&longitude=#{ENV['FOCUS_CITY_LON']}&distance=25&API_KEY=#{ENV["AIRNOW_API_KEY"]}&date=#{ts}"
+
+	puts "GETTING URL #{forecasts_url}"
+
       forecasts_data = JSON.parse(RestClient.get(forecasts_url))
       forecasts = forecasts_data.map do |result|
         result["aqi_cat"] = category_number_to_category(result["Category"]["Number"])
@@ -311,8 +322,8 @@ EOS
 
   EOS
 
-      # puts message_text
-      # puts message_html
+      puts "Sending a message of text-length #{ message_text.length }"
+      puts "Sending a message of html-length #{ message_html.length }"
 
       # Now that we've got the HTML and text versions of the email crafted, it's time to make API calls to Constant Contact
       time_sent = Time.now.utc.iso8601
@@ -349,7 +360,7 @@ EOS
         }
       }
 
-      # puts create_campaign_data.to_json
+      puts create_campaign_data.to_json
 
       
       create_campaign_response = RestClient.post("https://api.constantcontact.com/v2/emailmarketing/campaigns?api_key=#{ENV['CONSTANTCONTACT_API_KEY']}", create_campaign_data.to_json, :content_type => :json, :accept => :json, 'Authorization' => "Bearer #{ENV['CONSTANTCONTACT_ACCESS_TOKEN']}")
@@ -384,7 +395,7 @@ EOS
           end
 
           upload_data_to_ckan_resource(CKAN_INSTITUTE_MESSAGES_RESOURCE_ID, [data_to_record], 'upsert')
-          # puts "Campaign scheduled and logged! It will go out in about 5 minutes"
+          puts "Campaign scheduled and logged! It will go out in about 5 minutes"
         else
           raise StandardError, "Campaign ##{campaign_id} could not be scheduled"
         end

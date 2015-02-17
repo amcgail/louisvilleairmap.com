@@ -11,13 +11,18 @@ module AppHelpers
   end
 
   def get_ckan_package_by_slug(slug)
-    search_raw = RestClient.get("#{ENV['CKAN_HOST']}/api/3/action/package_show?id=#{URI.encode(slug)}",{"X-CKAN-API-KEY" => ENV['CKAN_API_KEY']})
-    search_results = JSON.parse(search_raw)
-    if search_results["success"] == true
-      search_results["result"]["extras_hash"] = {}
-      search_results["result"]["extras"].each {|hash| search_results["result"]["extras_hash"][hash["key"]] = hash["value"] }
-      return search_results["result"]
-    else
+    begin
+      search_raw = RestClient.get("#{ENV['CKAN_HOST']}/api/3/action/package_show?id=#{URI.encode(slug)}",{"X-CKAN-API-KEY" => ENV['CKAN_API_KEY']})
+      search_results = JSON.parse(search_raw)
+      if search_results["success"] == true
+        search_results["result"]["extras_hash"] = {}
+        search_results["result"]["extras"].each {|hash| search_results["result"]["extras_hash"][hash["key"]] = hash["value"] }
+        return search_results["result"]
+      else
+        return {}
+      end
+    rescue
+      puts "RESCUE!"
       return {}
     end
   end
@@ -129,7 +134,9 @@ module AppHelpers
     page = 1
     all_feeds = []
     base_url = "#{$api_url}/v2/feeds.json?user=airqualityegg&mapped=true&content=summary&per_page=100#{additional_http_params}"
+	puts base_url
     page_response = fetch_xively_url("#{base_url}&page=#{page}")
+	puts page_response
     while page_response.code == 200 && page_response["results"].size > 0
       page_results = Xively::SearchResult.new(page_response.body).results
       all_feeds = all_feeds + page_results
@@ -457,6 +464,7 @@ module AppHelpers
 
     ENV["CKAN_DATASET_KEYS_SITES_JOINABLE"].split(",").each do |dataset_key|
       fields = {}
+      puts dataset_key
       META[dataset_key]["extras_hash"].select{|k,v| k.match("field_containing_site_")}.sort.each do |k,v|
         field_as = k.gsub("field_containing_site_","")
         field_key = v

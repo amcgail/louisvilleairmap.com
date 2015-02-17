@@ -7,7 +7,17 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>Air Quality Maps for Institute for Healthy Air Water and Soil by Social Health Insights</title>
+<%
+	if @site == "A"
+		%><title>Air Quality Maps for Institute for Healthy Air Water and Soil by Social Health Insights</title><%
+	end
+	if @site == "S"
+		%><title>Soil Quality Maps for Institute for Healthy Air Water and Soil by Social Health Insights</title><%
+	end
+	if @site == "W"
+		%><title>Water Quality Maps for Institute for Healthy Air Water and Soil by Social Health Insights</title><%
+	end
+%>
 
     <meta name="description" content="Air Quality Maps for Institute for Healthy Air Water and Soil by Social Health Insights">
     <meta name="author" content="Social Health Insights, Institute for Healthy Air Water and Soil">
